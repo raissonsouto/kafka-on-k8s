@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  labels:
+    service: kafka
+spec:
+  serviceName: kafka
+  replicas: 3
+  selector:
+    matchLabels:
+      service: kafka
+  template:
+    metadata:
+      labels:
+        service: kafka
+    spec:
+      containers:
+      - name: kafka
+        image: docker.io/bitnami/kafka:3.7.0
+        ports:
+          - containerPort: 9092
+          - containerPort: 19092
+          - containerPort: 19093
+        env:
+        - name: KAFKA_CFG_NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
+        - name: KAFKA_CFG_LISTENERS
+          value: "CLIENT://:9092, BROKER://:19093, CONTROLLER://:19092"
+        - name: KAFKA_CFG_ADVERTISED_LISTENERS
+          value: "CLIENT://...:3000$(KAFKA_CFG_NODE_ID)"
+        envFrom:
+          - configMapRef:
+              name: kafka-config
+        volumeMounts:
+          - name: data
+            mountPath: /var/lib/kafka/
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+        - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: 1Gi
+        storageClassName: standard
+        selector:
+          matchLabels:
+            for: kafka-data

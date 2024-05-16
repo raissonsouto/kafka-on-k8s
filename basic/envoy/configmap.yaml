@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-config
+data:
+  envoy.yaml: |
+    static_resources:
+      listeners:
+        - address:
+            socket_address:
+              address: 0.0.0.0
+              port_value: 10000
+          filter_chains:
+          - filters:
+            - name: envoy.filters.network.tcp_proxy
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+                stat_prefix: tcp
+                cluster: broker_0
+
+        - address:
+            socket_address:
+              address: 0.0.0.0
+              port_value: 10001
+          filter_chains:
+          - filters:
+            - name: envoy.filters.network.tcp_proxy
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+                stat_prefix: tcp
+                cluster: broker_1
+
+        - address:
+            socket_address:
+              address: 0.0.0.0
+              port_value: 10002
+          filter_chains:
+          - filters:
+            - name: envoy.filters.network.tcp_proxy
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+                stat_prefix: tcp
+                cluster: broker_2
+
+      clusters:
+        - name: broker_0
+          type: STRICT_DNS
+          lb_policy: ROUND_ROBIN
+          load_assignment:
+            cluster_name: kafka_cluster
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: kafka-0.kafka.default.svc.cluster.local
+                          port_value: 9092
+
+        - name: broker_1
+          type: STRICT_DNS
+          lb_policy: ROUND_ROBIN
+          load_assignment:
+            cluster_name: kafka_cluster
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: kafka-1.kafka.default.svc.cluster.local
+                          port_value: 9092
+
+        - name: broker_2
+          type: STRICT_DNS
+          lb_policy: ROUND_ROBIN
+          load_assignment:
+            cluster_name: kafka_cluster
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: kafka-2.kafka.default.svc.cluster.local
+                          port_value: 9092
